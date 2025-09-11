@@ -25,27 +25,10 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget gnupg
-        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-        sudo apt-get update
-        sudo apt-get install -y google-chrome-stable
-    
-    - name: Install ChromeDriver
-      uses: nanasess/setup-chromedriver@v2
+    - name: Set up Chrome
+      uses: browser-actions/setup-chrome@v1
       with:
-        # This will automatically detect Chrome version and install matching ChromeDriver
-        chromedriver-version: 'latest'
-        # Optional: specify a specific version if needed
-        # chromedriver-version: '119.0.6045.105'
-    
-    - name: Set ChromeDriver path
-      run: |
-        echo "CHROMEDRIVER_PATH=$(which chromedriver)" >> $GITHUB_ENV
-        echo "ChromeDriver path: $(which chromedriver)"
+        install-chromedriver: true
     
     - name: Install Python dependencies
       run: |
@@ -60,7 +43,7 @@ jobs:
         python selenium_download.py
       env:
         CHROME_BIN: /usr/bin/google-chrome
-        CHROMEDRIVER: ${{ env.CHROMEDRIVER_PATH }}
+        CHROMEDRIVER: /usr/bin/chromedriver
     
     - name: Check for new files
       id: check_files
