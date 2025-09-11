@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+debug_screenshots/
+*.log
+*.html
+login_page_source.html
+post-login_page_source.html
+post_cookie_page_source.html
+console_page_source_*.html
+span_error_page_source_*.html
+
+# Keep result_files directory but ignore temporary files
+result_files/*.tmp
+result_files/*.temp
+
+# Secrets and credentials
+*.json
+!requirements.txt
+!selenium_download.py
