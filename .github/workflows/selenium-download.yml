@@ -40,7 +40,15 @@ jobs:
     
     - name: Run selenium download script
       run: |
+        echo "Starting selenium download script..."
+        echo "Python version: $(python --version)"
+        echo "Chrome version: $(google-chrome --version)"
+        echo "ChromeDriver version: $(chromedriver --version)"
+        echo "Current directory: $(pwd)"
+        echo "Files in directory: $(ls -la)"
+        echo "Running script..."
         python selenium_download.py
+        echo "Script completed with exit code: $?"
       env:
         CHROME_BIN: /usr/bin/google-chrome
         CHROMEDRIVER: /usr/bin/chromedriver

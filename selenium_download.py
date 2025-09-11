@@ -688,3 +688,15 @@ def run_selenium_download():
         driver.quit()
         logs.write("Script completed and browser closed.\n")
     return logs.getvalue()
+
+if __name__ == "__main__":
+    try:
+        print("Starting Selenium download automation...")
+        result = run_selenium_download()
+        print("Script execution completed successfully!")
+        print("Log output:")
+        print(result)
+    except Exception as e:
+        print(f"Script failed with error: {e}")
+        import traceback
+        traceback.print_exc()
