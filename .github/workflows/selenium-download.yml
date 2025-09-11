@@ -35,12 +35,17 @@ jobs:
         sudo apt-get install -y google-chrome-stable
     
     - name: Install ChromeDriver
+      uses: nanasess/setup-chromedriver@v2
+      with:
+        # This will automatically detect Chrome version and install matching ChromeDriver
+        chromedriver-version: 'latest'
+        # Optional: specify a specific version if needed
+        # chromedriver-version: '119.0.6045.105'
+    
+    - name: Set ChromeDriver path
       run: |
-        CHROME_VERSION=$(google-chrome --version | cut -d " " -f3 | cut -d "." -f1)
-        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}")
-        wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-        sudo unzip /tmp/chromedriver.zip -d /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
+        echo "CHROMEDRIVER_PATH=$(which chromedriver)" >> $GITHUB_ENV
+        echo "ChromeDriver path: $(which chromedriver)"
     
     - name: Install Python dependencies
       run: |
@@ -55,7 +60,7 @@ jobs:
         python selenium_download.py
       env:
         CHROME_BIN: /usr/bin/google-chrome
-        CHROMEDRIVER: /usr/local/bin/chromedriver
+        CHROMEDRIVER: ${{ env.CHROMEDRIVER_PATH }}
     
     - name: Check for new files
       id: check_files
