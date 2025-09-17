@@ -6,6 +6,8 @@ on:
     branches: [ main ]
     paths:
       - 'selenium_download.py'
+  repository_dispatch:
+    types: [webhook-trigger]
 
 jobs:
   selenium-download:

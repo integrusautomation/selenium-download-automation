@@ -163,10 +163,10 @@ def run_automation():
         repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER', 'aarushchugh')
         repo_name = os.environ.get('GITHUB_REPOSITORY_NAME', 'download')
         
-        # Trigger the workflow
+        # Trigger the workflow using repository_dispatch
         import requests
         
-        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/selenium-download.yml/dispatches"
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/dispatches"
         
         headers = {
             'Authorization': f'token {github_token}',
@@ -174,7 +174,11 @@ def run_automation():
         }
         
         data = {
-            'ref': 'main'  # Trigger on main branch
+            'event_type': 'webhook-trigger',
+            'client_payload': {
+                'triggered_by': 'webhook',
+                'timestamp': datetime.now().isoformat()
+            }
         }
         
         response = requests.post(url, headers=headers, json=data)
