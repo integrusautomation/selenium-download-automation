@@ -2,3 +2,8 @@ flask==2.3.3
 requests==2.31.0
 selenium==4.15.2
 chromedriver-autoinstaller==0.6.2
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+google-auth-httplib2==0.2.0
+google-api-python-client==2.182.0
+dropbox==12.0.2
