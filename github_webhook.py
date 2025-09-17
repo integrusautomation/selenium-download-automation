@@ -142,7 +142,7 @@ RESULTS_TEMPLATE = """
 """
 
 def run_automation():
-    """Run the selenium automation in a separate thread"""
+    """Trigger GitHub Actions workflow for selenium automation"""
     global automation_status
     
     try:
@@ -150,39 +150,44 @@ def run_automation():
         automation_status['progress'] = 0
         automation_status['last_error'] = None
         
-        print("Starting selenium automation...")
+        print("Triggering GitHub Actions workflow...")
         
-        # Change to the selenium automation directory
-        selenium_dir = os.path.join(os.path.dirname(__file__), 'selenium-automation')
-        if not os.path.exists(selenium_dir):
-            selenium_dir = os.path.dirname(__file__)
+        # Get GitHub token from environment
+        github_token = os.environ.get('GITHUB_TOKEN')
+        if not github_token:
+            automation_status['last_error'] = "GITHUB_TOKEN environment variable not set"
+            automation_status['running'] = False
+            return
         
-        # Run the selenium script
-        result = subprocess.run(
-            ['python', 'selenium_download.py'],
-            cwd=selenium_dir,
-            capture_output=True,
-            text=True,
-            timeout=1800  # 30 minute timeout
-        )
+        # Get repository info from environment or use defaults
+        repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER', 'aarushchugh')
+        repo_name = os.environ.get('GITHUB_REPOSITORY_NAME', 'download')
         
-        automation_status['progress'] = 50
+        # Trigger the workflow
+        import requests
         
-        if result.returncode == 0:
-            # Parse results from the output
-            output = result.stdout
-            results = parse_results_from_output(output)
-            
-            automation_status['last_results'] = results
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/selenium-download.yml/dispatches"
+        
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        data = {
+            'ref': 'main'  # Trigger on main branch
+        }
+        
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 204:
+            automation_status['progress'] = 50
+            automation_status['last_results'] = {"status": "workflow_triggered", "message": "GitHub Actions workflow started"}
             automation_status['progress'] = 100
-            print("Automation completed successfully")
+            print("GitHub Actions workflow triggered successfully")
         else:
-            automation_status['last_error'] = f"Automation failed: {result.stderr}"
-            print(f"Automation failed: {result.stderr}")
+            automation_status['last_error'] = f"Failed to trigger workflow: {response.status_code} - {response.text}"
+            print(f"Failed to trigger workflow: {response.status_code} - {response.text}")
     
-    except subprocess.TimeoutExpired:
-        automation_status['last_error'] = "Automation timed out after 30 minutes"
-        print("Automation timed out")
     except Exception as e:
         automation_status['last_error'] = f"Unexpected error: {str(e)}"
         print(f"Unexpected error: {e}")
