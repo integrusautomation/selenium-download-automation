@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  phantombuster-webhook:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DEBUG=true
+    volumes:
+      - ./result_files:/app/result_files
+      - ./debug_screenshots:/app/debug_screenshots
+    restart: unless-stopped

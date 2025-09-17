@@ -220,8 +220,13 @@ def parse_results_from_output(output):
 def home():
     """Main page with results table"""
     results = automation_status.get('last_results', {})
+    
+    # Handle case where results is None
+    if results is None:
+        results = {}
+    
     total_folders = len(results)
-    total_files = sum(len(files) for files in results.values())
+    total_files = sum(len(files) for files in results.values()) if results else 0
     
     # Determine status
     if automation_status['running']:
@@ -279,12 +284,16 @@ def api_results():
     """API endpoint to get results as JSON"""
     results = automation_status.get('last_results', {})
     
+    # Handle case where results is None
+    if results is None:
+        results = {}
+    
     return jsonify({
         'status': 'success',
         'timestamp': automation_status.get('last_run'),
         'running': automation_status['running'],
         'total_folders': len(results),
-        'total_files': sum(len(files) for files in results.values()),
+        'total_files': sum(len(files) for files in results.values()) if results else 0,
         'results': results,
         'error': automation_status.get('last_error')
     })

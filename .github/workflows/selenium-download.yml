@@ -1,9 +1,6 @@
 name: Selenium Download Automation
 
 on:
-  schedule:
-    # Run every day at 2 AM UTC (adjust timezone as needed)
-    - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual triggering
   push:
     branches: [ main ]
