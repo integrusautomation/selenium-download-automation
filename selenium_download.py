@@ -215,6 +215,24 @@ def run_selenium_download():
     logs = io.StringIO()
     download_dir = os.path.abspath("result_files")
     os.makedirs(download_dir, exist_ok=True)  # Ensure directory exists
+    # Clear out any existing results before starting a new run
+    try:
+        for entry in os.listdir(download_dir):
+            entry_path = os.path.join(download_dir, entry)
+            if os.path.isfile(entry_path) or os.path.islink(entry_path):
+                try:
+                    os.remove(entry_path)
+                except Exception as e:
+                    logs.write(f"Could not remove file {entry_path}: {e}\n")
+            elif os.path.isdir(entry_path):
+                try:
+                    import shutil
+                    shutil.rmtree(entry_path)
+                except Exception as e:
+                    logs.write(f"Could not remove directory {entry_path}: {e}\n")
+        logs.write("Cleared existing files in result_files directory.\n")
+    except Exception as e:
+        logs.write(f"Failed to clear result_files directory: {e}\n")
     
     # Ensure matching chromedriver is present for the installed Chrome
     if CHROMEDRIVER_AUTOINSTALLER_AVAILABLE:
