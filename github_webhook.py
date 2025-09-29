@@ -25,6 +25,30 @@ automation_status = {
     'progress': 0
 }
 
+# Directory where CSV results are stored
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'result_files')
+
+def clear_results_directory() -> None:
+    """Remove all files in the results directory without deleting the folder."""
+    try:
+        if not os.path.isdir(RESULTS_DIR):
+            return
+        for entry in os.listdir(RESULTS_DIR):
+            entry_path = os.path.join(RESULTS_DIR, entry)
+            if os.path.isfile(entry_path) or os.path.islink(entry_path):
+                try:
+                    os.remove(entry_path)
+                except Exception:
+                    pass
+            elif os.path.isdir(entry_path):
+                try:
+                    shutil.rmtree(entry_path)
+                except Exception:
+                    pass
+    except Exception:
+        # Silently ignore cleanup errors; webhook should still proceed
+        pass
+
 # HTML template for results display
 RESULTS_TEMPLATE = """
 <!DOCTYPE html>
@@ -325,6 +349,8 @@ def health():
 def github_webhook():
     """GitHub webhook endpoint"""
     try:
+        # Clear out previous results on every webhook call
+        clear_results_directory()
         # Verify the webhook (optional - add secret verification)
         payload = request.get_json()
         
