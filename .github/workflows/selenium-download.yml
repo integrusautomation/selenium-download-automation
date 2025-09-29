@@ -9,6 +9,9 @@ on:
   repository_dispatch:
     types: [webhook-trigger]
 
+permissions:
+  contents: write
+
 jobs:
   selenium-download:
     runs-on: ubuntu-latest
@@ -71,9 +74,28 @@ jobs:
     - name: Commit and push results
       if: steps.check_files.outputs.new_files == 'true'
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+
+        # Stage changes
         git add result_files/
         git add debug_screenshots/ || true
-        git commit -m "Automated download: $(date '+%Y-%m-%d %H:%M:%S')" || exit 0
-        git push
+
+        # Exit early if nothing to commit
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+          exit 0
+        fi
+
+        # Ensure we rebase on top of latest remote to avoid non-fast-forward
+        BRANCH_NAME="${GITHUB_REF_NAME:-main}"
+        git fetch origin
+        git checkout "$BRANCH_NAME"
+        git pull --rebase origin "$BRANCH_NAME" || {
+          echo "Rebase failed, aborting rebase to avoid stuck state.";
+          git rebase --abort || true;
+        }
+
+        git commit -m "Automated download: $(date '+%Y-%m-%d %H:%M:%S') [skip ci]"
+        # Safe force in case rebase changed local commit hashes
+        git push --force-with-lease origin "HEAD:${BRANCH_NAME}"
