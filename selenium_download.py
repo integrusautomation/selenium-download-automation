@@ -245,6 +245,14 @@ def run_selenium_download():
     else:
         logs.write("ChromeDriver auto-installer not available, using system ChromeDriver\n")
     
+    # Try to use Selenium's built-in driver management as fallback
+    try:
+        from selenium.webdriver.chrome.service import Service
+        from webdriver_manager.chrome import ChromeDriverManager
+        logs.write("webdriver-manager available, will use as fallback\n")
+    except ImportError:
+        logs.write("webdriver-manager not available\n")
+    
     chrome_options = Options()
     chrome_options.add_argument('--headless=new')
     chrome_options.add_argument('--no-sandbox')  # Required for Linux/Render
@@ -425,6 +433,18 @@ def run_selenium_download():
                 logs.write("✓ Chrome WebDriver initialized from PATH\n")
             except Exception as e:
                 logs.write(f"✗ Failed with PATH chromedriver: {e}\n")
+                driver = None
+        
+        # Approach 2.5: Use webdriver-manager as fallback
+        if driver is None:
+            logs.write("Attempting to use webdriver-manager\n")
+            try:
+                from webdriver_manager.chrome import ChromeDriverManager
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                logs.write("✓ Chrome WebDriver initialized with webdriver-manager\n")
+            except Exception as e:
+                logs.write(f"✗ Failed with webdriver-manager: {e}\n")
                 driver = None
         
         # Approach 3: Try with minimal options for Render

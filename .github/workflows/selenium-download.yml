@@ -1,16 +1,16 @@
 name: Selenium Download Automation
 
 on:
+  schedule:
+    # Run every day at 2 AM UTC (adjust timezone as needed)
+    - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual triggering
   push:
     branches: [ main ]
     paths:
       - 'selenium_download.py'
-  repository_dispatch:
-    types: [webhook-trigger]
-
-permissions:
-  contents: write
+      - 'requirements.txt'
+      - '.github/workflows/selenium-download.yml'
 
 jobs:
   selenium-download:
@@ -28,10 +28,42 @@ jobs:
       with:
         python-version: '3.9'
     
-    - name: Set up Chrome
-      uses: browser-actions/setup-chrome@v1
-      with:
-        install-chromedriver: true
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget gnupg unzip
+        # Install Google Chrome
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+    
+    - name: Install compatible ChromeDriver
+      run: |
+        # Get Chrome version
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        echo "Chrome version: $CHROME_VERSION"
+        
+        # Try ChromeDriver for Testing (newer API) first
+        CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION%.*}")
+        echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
+        
+        # Download and install ChromeDriver
+        if wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"; then
+          sudo unzip /tmp/chromedriver.zip -d /tmp/
+          sudo mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/chromedriver
+        else
+          echo "Failed to download from new API, trying legacy API..."
+          # Fallback to legacy API
+          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*}")
+          wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+          sudo unzip /tmp/chromedriver.zip -d /usr/local/bin/
+          sudo chmod +x /usr/local/bin/chromedriver
+        fi
+        
+        # Verify installation
+        chromedriver --version
     
     - name: Install Python dependencies
       run: |
@@ -39,8 +71,23 @@ jobs:
         pip install -r requirements.txt
         pip install -r webhook_requirements.txt
     
-    - name: Create result_files directory
-      run: mkdir -p result_files
+    - name: Create necessary directories
+      run: |
+        mkdir -p result_files
+        mkdir -p debug_screenshots
+        mkdir -p downloaded_files
+    
+    - name: Set up environment variables
+      run: |
+        echo "CHROME_BIN=/usr/bin/google-chrome" >> $GITHUB_ENV
+        echo "CHROMEDRIVER=/usr/local/bin/chromedriver" >> $GITHUB_ENV
+        echo "DISPLAY=:99" >> $GITHUB_ENV
+    
+    - name: Start virtual display
+      run: |
+        sudo apt-get install -y xvfb
+        Xvfb :99 -screen 0 1920x1080x24 &
+        sleep 3
     
     - name: Run selenium download script
       run: |
@@ -50,52 +97,67 @@ jobs:
         echo "ChromeDriver version: $(chromedriver --version)"
         echo "Current directory: $(pwd)"
         echo "Files in directory: $(ls -la)"
+        echo "Environment variables:"
+        echo "CHROME_BIN: $CHROME_BIN"
+        echo "CHROMEDRIVER: $CHROMEDRIVER"
+        echo "DISPLAY: $DISPLAY"
         echo "Running script..."
         python selenium_download.py
         echo "Script completed with exit code: $?"
       env:
         CHROME_BIN: /usr/bin/google-chrome
-        CHROMEDRIVER: /usr/bin/chromedriver
+        CHROMEDRIVER: /usr/local/bin/chromedriver
+        DISPLAY: :99
     
     - name: Update webhook results
       run: |
         echo "Updating webhook with latest results..."
-        python update_webhook_results.py
+        python update_webhook_results.py || echo "Webhook update failed, continuing..."
     
     - name: Check for new files
       id: check_files
       run: |
         if [ -n "$(find result_files -name "*.csv" -newer selenium_download.py 2>/dev/null)" ]; then
           echo "new_files=true" >> $GITHUB_OUTPUT
+          echo "Found new CSV files"
         else
           echo "new_files=false" >> $GITHUB_OUTPUT
+          echo "No new CSV files found"
         fi
+        echo "Files in result_files:"
+        ls -la result_files/ || echo "result_files directory not found"
+    
+    - name: Upload debug screenshots
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: debug-screenshots
+        path: debug_screenshots/
+        retention-days: 7
+    
+    - name: Upload result files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: result-files
+        path: result_files/
+        retention-days: 30
     
     - name: Commit and push results
       if: steps.check_files.outputs.new_files == 'true'
       run: |
-        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-
-        # Stage changes
-        git add result_files/
-        git add debug_screenshots/ || true
-
-        # Exit early if nothing to commit
-        if git diff --cached --quiet; then
-          echo "No changes to commit."
-          exit 0
-        fi
-
-        # Ensure we rebase on top of latest remote to avoid non-fast-forward
-        BRANCH_NAME="${GITHUB_REF_NAME:-main}"
-        git fetch origin
-        git checkout "$BRANCH_NAME"
-        git pull --rebase origin "$BRANCH_NAME" || {
-          echo "Rebase failed, aborting rebase to avoid stuck state.";
-          git rebase --abort || true;
-        }
-
-        git commit -m "Automated download: $(date '+%Y-%m-%d %H:%M:%S') [skip ci]"
-        # Safe force in case rebase changed local commit hashes
-        git push --force-with-lease origin "HEAD:${BRANCH_NAME}"
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add result_files/ || echo "No result files to add"
+        git add debug_screenshots/ || echo "No debug screenshots to add"
+        git commit -m "Automated download: $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+        git push || echo "Push failed"
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "=== Selenium Download Summary ==="
+        echo "New files found: ${{ steps.check_files.outputs.new_files }}"
+        echo "Result files count: $(find result_files -name "*.csv" 2>/dev/null | wc -l || echo 0)"
+        echo "Debug screenshots count: $(find debug_screenshots -name "*.png" 2>/dev/null | wc -l || echo 0)"
+        echo "=== End Summary ==="
