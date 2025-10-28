@@ -40,30 +40,60 @@ jobs:
     
     - name: Install compatible ChromeDriver
       run: |
+        set +e  # Don't exit on error - we have fallbacks
+        
         # Get Chrome version
         CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        MAJOR_VERSION=$(echo $CHROME_VERSION | cut -d. -f1)
         echo "Chrome version: $CHROME_VERSION"
+        echo "Major version: $MAJOR_VERSION"
         
-        # Try ChromeDriver for Testing (newer API) first
-        CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION%.*}")
-        echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
+        # Try to get ChromeDriver version using the JSON API
+        echo "Attempting to get ChromeDriver version using JSON API..."
+        RESPONSE=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json")
+        CHROMEDRIVER_VERSION=$(echo "$RESPONSE" | grep -oP "\"version\": \"${MAJOR_VERSION}\.[0-9]+\.[0-9]+\.[0-9]+\"" | grep -oP "${MAJOR_VERSION}\.[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+        
+        # If that didn't work, try the LATEST_RELEASE endpoint
+        if [[ -z "$CHROMEDRIVER_VERSION" ]]; then
+          echo "Trying LATEST_RELEASE endpoint..."
+          CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${MAJOR_VERSION}")
+          # Check if we got HTML (404) instead of a version number
+          if [[ "$CHROMEDRIVER_VERSION" == *"DOCTYPE"* ]] || [[ "$CHROMEDRIVER_VERSION" == *"<html>"* ]] || [[ "$CHROMEDRIVER_VERSION" == *"404"* ]]; then
+            echo "LATEST_RELEASE endpoint returned HTML, trying to find latest version in JSON..."
+            CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" | grep -oP "\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\"" | tail -1 | grep -oP "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
+          fi
+        fi
+        
+        # If still no version, try to get any available version for this major version
+        if [[ -z "$CHROMEDRIVER_VERSION" ]]; then
+          echo "Could not find exact version match, looking for latest compatible version..."
+          CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" | grep -oP "\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\"" | grep -oP "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+        fi
+        
+        echo "ChromeDriver version to download: $CHROMEDRIVER_VERSION"
         
         # Download and install ChromeDriver
-        if wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"; then
-          sudo unzip /tmp/chromedriver.zip -d /tmp/
-          sudo mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-        else
-          echo "Failed to download from new API, trying legacy API..."
-          # Fallback to legacy API
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*}")
-          wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-          sudo unzip /tmp/chromedriver.zip -d /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
+        CHROMEDRIVER_INSTALLED=false
+        if [[ -n "$CHROMEDRIVER_VERSION" ]]; then
+          if wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"; then
+            echo "Successfully downloaded ChromeDriver from new API"
+            sudo unzip /tmp/chromedriver.zip -d /tmp/
+            sudo mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/
+            sudo chmod +x /usr/local/bin/chromedriver
+            CHROMEDRIVER_INSTALLED=true
+          fi
         fi
         
         # Verify installation
-        chromedriver --version
+        if chromedriver --version; then
+          echo "ChromeDriver installed and working"
+          CHROMEDRIVER_INSTALLED=true
+        else
+          echo "ChromeDriver installation failed or not in PATH"
+          echo "Python script will use chromedriver_autoinstaller or webdriver-manager instead"
+        fi
+        
+        set -e  # Re-enable exit on error
     
     - name: Install Python dependencies
       run: |
