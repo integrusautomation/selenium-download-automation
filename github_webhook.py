@@ -425,14 +425,10 @@ def trigger_selenium_download_workflow():
             if not workflow_file.startswith('.github/workflows/'):
                 workflow_file = f".github/workflows/{workflow_file}"
             
-            # Use workflow_dispatch API
+            # Use workflow_dispatch API (no inputs since workflow doesn't define them)
             dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_file}/dispatches"
             dispatch_data = {
-                'ref': 'main',
-                'inputs': {
-                    'triggered_by': 'api',
-                    'timestamp': datetime.now().isoformat()
-                }
+                'ref': 'main'
             }
             
             response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
@@ -472,14 +468,10 @@ def trigger_selenium_download_workflow():
                     automation_status['last_error'] = f"Failed to trigger workflow: {response.status_code} - {response.text}"
                     return False
         
-        # Use workflow ID to trigger
+        # Use workflow ID to trigger (no inputs since workflow doesn't define them)
         dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_id}/dispatches"
         dispatch_data = {
-            'ref': 'main',
-            'inputs': {
-                'triggered_by': 'api',
-                'timestamp': datetime.now().isoformat()
-            }
+            'ref': 'main'
         }
         
         response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
