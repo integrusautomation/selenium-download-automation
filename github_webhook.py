@@ -118,6 +118,7 @@ RESULTS_TEMPLATE = """
         <div style="margin: 20px 0;">
             <button class="refresh-btn" onclick="refreshPage()">🔄 Refresh</button>
             <button class="refresh-btn" onclick="location.href='/trigger'">▶️ Run Automation</button>
+            <button class="refresh-btn" onclick="location.href='/api/trigger-selenium'">🤖 Trigger Selenium</button>
             <button class="refresh-btn" onclick="location.href='/api/results'">📊 JSON API</button>
         </div>
         
@@ -184,8 +185,8 @@ def run_automation():
             return
         
         # Get repository info from environment or use defaults
-        repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER', 'aarushchugh')
-        repo_name = os.environ.get('GITHUB_REPOSITORY_NAME', 'download')
+        repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER', 'integrusautomation')
+        repo_name = os.environ.get('GITHUB_REPOSITORY_NAME', 'selenium-download-automation')
         
         # Trigger the workflow using repository_dispatch
         import requests
@@ -344,6 +345,190 @@ def health():
         'timestamp': datetime.now().isoformat(),
         'automation_running': automation_status['running']
     })
+
+def trigger_selenium_download_workflow():
+    """Trigger the selenium-download GitHub Actions workflow directly"""
+    global automation_status
+    
+    try:
+        automation_status['running'] = True
+        automation_status['progress'] = 0
+        automation_status['last_error'] = None
+        
+        print("Triggering Selenium Download Automation workflow...")
+        
+        # Get GitHub token from environment
+        github_token = os.environ.get('GITHUB_TOKEN')
+        if not github_token:
+            automation_status['last_error'] = "GITHUB_TOKEN environment variable not set"
+            automation_status['running'] = False
+            return False
+        
+        # Get repository info from environment or use defaults
+        repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER', 'integrusautomation')
+        repo_name = os.environ.get('GITHUB_REPOSITORY_NAME', 'selenium-download-automation')
+        workflow_name = os.environ.get('SELENIUM_WORKFLOW_NAME', 'Selenium Download Automation')
+        
+        import requests
+        
+        # Try to trigger the workflow using workflow_dispatch API
+        # First, get the workflow ID by listing workflows
+        workflows_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows"
+        headers = {
+            'Authorization': f'token {github_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        workflows_response = requests.get(workflows_url, headers=headers)
+        
+        if workflows_response.status_code != 200:
+            # Fallback to repository_dispatch if workflow listing fails
+            print(f"Could not list workflows, using repository_dispatch fallback")
+            dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/dispatches"
+            dispatch_data = {
+                'event_type': 'selenium-download-trigger',
+                'client_payload': {
+                    'triggered_by': 'api',
+                    'trigger_type': 'selenium-download',
+                    'timestamp': datetime.now().isoformat()
+                }
+            }
+            
+            response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
+            if response.status_code == 204:
+                automation_status['progress'] = 100
+                automation_status['last_results'] = {
+                    "status": "workflow_triggered",
+                    "message": "Selenium Download Automation workflow started via repository_dispatch",
+                    "trigger_type": "selenium-download"
+                }
+                print("Selenium Download Automation workflow triggered successfully")
+                return True
+            else:
+                automation_status['last_error'] = f"Failed to trigger workflow: {response.status_code} - {response.text}"
+                return False
+        
+        # Find the selenium-download workflow
+        workflows = workflows_response.json().get('workflows', [])
+        workflow_id = None
+        workflow_file = None
+        
+        for workflow in workflows:
+            if 'selenium' in workflow['name'].lower() or workflow['name'] == workflow_name:
+                workflow_id = workflow['id']
+                workflow_file = workflow['path']
+                break
+        
+        if not workflow_id:
+            # Fallback: try workflow_dispatch on the known workflow file
+            workflow_file = "selenium-download.yml"
+            if not workflow_file.startswith('.github/workflows/'):
+                workflow_file = f".github/workflows/{workflow_file}"
+            
+            # Use workflow_dispatch API
+            dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_file}/dispatches"
+            dispatch_data = {
+                'ref': 'main',
+                'inputs': {
+                    'triggered_by': 'api',
+                    'timestamp': datetime.now().isoformat()
+                }
+            }
+            
+            response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
+            if response.status_code == 204:
+                automation_status['progress'] = 100
+                automation_status['last_results'] = {
+                    "status": "workflow_triggered",
+                    "message": "Selenium Download Automation workflow started",
+                    "trigger_type": "selenium-download",
+                    "workflow_file": workflow_file
+                }
+                print("Selenium Download Automation workflow triggered successfully")
+                return True
+            else:
+                # Final fallback to repository_dispatch
+                print(f"workflow_dispatch failed, using repository_dispatch fallback: {response.status_code}")
+                dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/dispatches"
+                dispatch_data = {
+                    'event_type': 'selenium-download-trigger',
+                    'client_payload': {
+                        'triggered_by': 'api',
+                        'trigger_type': 'selenium-download',
+                        'timestamp': datetime.now().isoformat()
+                    }
+                }
+                response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
+                if response.status_code == 204:
+                    automation_status['progress'] = 100
+                    automation_status['last_results'] = {
+                        "status": "workflow_triggered",
+                        "message": "Selenium Download Automation workflow started via repository_dispatch",
+                        "trigger_type": "selenium-download"
+                    }
+                    print("Selenium Download Automation workflow triggered successfully")
+                    return True
+                else:
+                    automation_status['last_error'] = f"Failed to trigger workflow: {response.status_code} - {response.text}"
+                    return False
+        
+        # Use workflow ID to trigger
+        dispatch_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_id}/dispatches"
+        dispatch_data = {
+            'ref': 'main',
+            'inputs': {
+                'triggered_by': 'api',
+                'timestamp': datetime.now().isoformat()
+            }
+        }
+        
+        response = requests.post(dispatch_url, headers=headers, json=dispatch_data)
+        if response.status_code == 204:
+            automation_status['progress'] = 100
+            automation_status['last_results'] = {
+                "status": "workflow_triggered",
+                "message": "Selenium Download Automation workflow started",
+                "trigger_type": "selenium-download",
+                "workflow_id": workflow_id
+            }
+            print("Selenium Download Automation workflow triggered successfully")
+            return True
+        else:
+            automation_status['last_error'] = f"Failed to trigger workflow: {response.status_code} - {response.text}"
+            print(f"Failed to trigger workflow: {response.status_code} - {response.text}")
+            return False
+    
+    except Exception as e:
+        automation_status['last_error'] = f"Unexpected error: {str(e)}"
+        print(f"Unexpected error: {e}")
+        return False
+    finally:
+        automation_status['running'] = False
+        automation_status['last_run'] = datetime.now().isoformat()
+
+@app.route('/api/trigger-selenium', methods=['POST', 'GET'])
+def api_trigger_selenium():
+    """Dedicated API endpoint to trigger Selenium Download Automation"""
+    if automation_status['running']:
+        return jsonify({
+            'status': 'error',
+            'message': 'Automation is already running',
+            'running': True
+        }), 400
+    
+    # Start automation in a separate thread
+    thread = threading.Thread(target=trigger_selenium_download_workflow)
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Selenium Download Automation triggered',
+        'endpoint': '/api/trigger-selenium',
+        'status_endpoint': '/api/status',
+        'results_endpoint': '/api/results',
+        'triggered_at': datetime.now().isoformat()
+    }), 202
 
 @app.route('/webhook/github', methods=['POST'])
 def github_webhook():
