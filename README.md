@@ -41,6 +41,24 @@ To run the workflow manually:
 2. Select "Selenium Download Automation" workflow
 3. Click "Run workflow"
 
+## Public Trigger Endpoint
+
+You can expose `/api/trigger-selenium` publicly. The route accepts requests without any authentication when no API key is configured on the server.
+
+Optionally, you can set a shared secret to restrict access:
+
+1. Set a repository secret named `SELENIUM_TRIGGER_API_KEY` and configure the same value on the server hosting `github_webhook.py`.
+2. Update your GitHub Actions workflow to call the endpoint using that secret, for example:
+
+```yaml
+- name: Trigger hosted Selenium download
+  run: |
+    curl -X POST "https://your-public-domain/api/trigger-selenium" \
+      -H "X-API-Key: ${{ secrets.SELENIUM_TRIGGER_API_KEY }}"
+```
+
+The Flask route now requires the `X-API-Key` header (or `api_key` query string) to match the server’s `SELENIUM_TRIGGER_API_KEY` environment variable before it will trigger the Selenium automation.
+
 ## Dependencies
 
 The script requires:

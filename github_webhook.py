@@ -25,6 +25,9 @@ automation_status = {
     'progress': 0
 }
 
+# API key used to protect the public trigger endpoint
+TRIGGER_API_KEY = os.environ.get('SELENIUM_TRIGGER_API_KEY')
+
 # Directory where CSV results are stored
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'result_files')
 
@@ -283,6 +286,24 @@ def home():
             last_updated = dt.strftime('%Y-%m-%d %H:%M:%S')
         except:
             pass
+
+
+def _validate_trigger_api_key(req):
+    """
+    Validate the API key supplied with the request.
+
+    Returns:
+        tuple[bool, str | None]: (is_valid, error_message)
+    """
+    # If no API key is configured, allow open access
+    if not TRIGGER_API_KEY:
+        return True, None
+
+    supplied_key = req.headers.get('X-API-Key') or req.args.get('api_key')
+    if supplied_key != TRIGGER_API_KEY:
+        return False, "Invalid API key"
+
+    return True, None
     
     return render_template_string(RESULTS_TEMPLATE, 
                                 results=results,
@@ -501,6 +522,13 @@ def trigger_selenium_download_workflow():
 @app.route('/api/trigger-selenium', methods=['POST', 'GET'])
 def api_trigger_selenium():
     """Dedicated API endpoint to trigger Selenium Download Automation"""
+    authorized, error_message = _validate_trigger_api_key(request)
+    if not authorized:
+        return jsonify({
+            'status': 'error',
+            'message': error_message or 'Unauthorized'
+        }), 401
+
     if automation_status['running']:
         return jsonify({
             'status': 'error',
