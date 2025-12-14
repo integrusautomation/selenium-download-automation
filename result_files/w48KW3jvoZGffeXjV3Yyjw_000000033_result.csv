@@ -1,0 +1,20 @@
+query,error,timestamp
+"https://www.google.com/maps/search/psychiatry+clinics+in+Seattle+Seattle+WA/@47.6061389,-122.3328481,14z",Can't load search,2025-12-14T20:44:24.471Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Bellevue+Seattle+WA/@47.6101497,-122.2015159,14z",Can't load search,2025-12-14T20:44:41.973Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Redmond+Seattle+WA/@47.6739881,-122.121512,14z",Can't load search,2025-12-14T20:44:58.210Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Tacoma+Seattle+WA/@47.255134,-122.4420002,14z",Can't load search,2025-12-14T20:45:14.105Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Everett+Seattle+WA/@47.9782457,-122.207417,14z",Can't load search,2025-12-14T20:45:30.155Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Kirkland+Seattle+WA/@47.6768927,-122.2059833,14z",Can't load search,2025-12-14T20:45:45.985Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Renton+Seattle+WA/@47.4796927,-122.2079218,14z",Can't load search,2025-12-14T20:46:02.024Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Lynnwood+Seattle+WA/@47.8209301,-122.3151313,14z",Can't load search,2025-12-14T20:46:18.184Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Kent+Seattle+WA/@47.3830671,-122.234771,14z",Can't load search,2025-12-14T20:46:34.352Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Shoreline+Seattle+WA/@47.7559659,-122.3456972,14z",Can't load search,2025-12-14T20:46:50.363Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Bothell+Seattle+WA/@47.760111,-122.2054452,14z",Can't load search,2025-12-14T20:47:06.329Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Federal+Way+Seattle+WA/@47.3224006,-122.3134186,14z",Can't load search,2025-12-14T20:47:22.257Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Sammamish+Seattle+WA/@47.6162683,-122.0355736,14z",Can't load search,2025-12-14T20:47:38.271Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Mountlake+Terrace+Seattle+WA/@47.7881528,-122.3087405,14z",Can't load search,2025-12-14T20:47:54.172Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Issaquah+Seattle+WA/@47.5300699,-122.0329148,14z",Can't load search,2025-12-14T20:48:10.148Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Auburn+Seattle+WA/@47.3073228,-122.2284532,14z",Can't load search,2025-12-14T20:48:26.085Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Mercer+Island+Seattle+WA/@47.5706548,-122.2220673,14z",Can't load search,2025-12-14T20:48:42.240Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Edmonds+Seattle+WA/@47.8111602,-122.3769102,14z",Can't load search,2025-12-14T20:48:58.351Z
+"https://www.google.com/maps/search/psychiatry+clinics+in+Woodinville+Seattle+WA/@47.7542651,-122.1634582,14z",Can't load search,2025-12-14T20:49:14.541Z
