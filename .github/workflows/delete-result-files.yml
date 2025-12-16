@@ -1,0 +1,58 @@
+name: Delete Result Files
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  schedule:
+    # Optional: Run on a schedule (uncomment and adjust as needed)
+    # - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+
+jobs:
+  delete-result-files:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Required to commit and push changes
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Delete result_files directory
+      run: |
+        if [ -d "result_files" ]; then
+          echo "Deleting result_files directory..."
+          rm -rf result_files
+          echo "result_files directory deleted"
+        else
+          echo "result_files directory does not exist"
+        fi
+    
+    - name: Commit and push deletion
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are changes to commit
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Changes detected, committing..."
+          git add -A
+          git commit -m "Delete result_files directory - $(date '+%Y-%m-%d %H:%M:%S UTC')" || echo "No changes to commit"
+          git push || echo "Push failed"
+          echo "Changes committed and pushed"
+        else
+          echo "No changes to commit"
+        fi
+    
+    - name: Summary
+      if: always()
+      run: |
+        echo "=== Delete Result Files Summary ==="
+        if [ -d "result_files" ]; then
+          echo "Status: result_files directory still exists"
+        else
+          echo "Status: result_files directory successfully deleted"
+        fi
+        echo "=== End Summary ==="
