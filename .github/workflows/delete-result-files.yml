@@ -1,10 +1,7 @@
-name: Delete Result Files
+name: Delete Folder
 
 on:
   workflow_dispatch:  # Manual trigger from GitHub UI
-  schedule:
-    # Optional: Run on a schedule (uncomment and adjust as needed)
-    # - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
 
 jobs:
   delete-result-files:
