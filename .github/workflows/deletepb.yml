@@ -1,0 +1,54 @@
+name: Run DeletePB Script
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  repository_dispatch:  # Trigger via webhook
+    types: [deletepb]
+
+jobs:
+  deletepb:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Set up Chrome
+      uses: browser-actions/setup-chrome@v1
+      with:
+        install-chromedriver: true
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create debug_screenshots directory
+      run: mkdir -p debug_screenshots
+    
+    - name: Run deletepb.py
+      run: |
+        echo "Starting deletepb.py script..."
+        echo "Python version: $(python --version)"
+        echo "Chrome version: $(google-chrome --version)"
+        echo "ChromeDriver version: $(chromedriver --version)"
+        python deletepb.py
+        echo "Script completed with exit code: $?"
+      env:
+        CHROME_BIN: /usr/bin/google-chrome
+        CHROMEDRIVER: /usr/bin/chromedriver
+    
+    - name: Upload debug screenshots
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: deletepb-debug-screenshots
+        path: debug_screenshots/
+        retention-days: 7
+        if-no-files-found: ignore
+
